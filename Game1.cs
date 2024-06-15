@@ -101,9 +101,20 @@ namespace Pong
 
         private Paddle _player1Paddle;
         private Paddle _player2Paddle;
+        private int _player1Score;
+        private int _player2Score;
         private Ball _ball;
         public int Height { get; private set; }
         public int Width { get; private set; }
+        private enum GameState
+        {
+            Start,
+            Playing,
+            Paused,
+            GameOver
+        }
+        private GameState _currentGameState;
+
 
         public Game1()
         {
@@ -129,6 +140,30 @@ namespace Pong
             }
         }
 
+        public void showScore()
+        {
+            // Mostrar el marcador en la pantalla
+
+        }
+
+        public void showWinner()
+        {
+            // Mostrar el ganador en la pantalla
+        }
+        public void resetGame()
+        {
+            _player1Paddle.Position = new Vector2(Width - _player1Paddle.Texture.Width, 50);
+            _player2Paddle.Position = new Vector2(50, 50);
+            _ball.Initialize(Height, Width);
+        }
+
+
+        public void madePoint()
+        {
+            // Aumentar el marcador y mostrar el mensaje de punto, reiniciar la posición de la pelota y paletas
+
+        }
+
         protected override void Initialize()
         {
             Width = 800;
@@ -144,6 +179,8 @@ namespace Pong
             _player2Paddle.Initialize();
             _ball = new Ball();
             _ball.Initialize(Height, Width);
+
+            _currentGameState = GameState.Start;
             base.Initialize();
         }
 
@@ -165,13 +202,58 @@ namespace Pong
 
             KeyboardState keyboardState = Keyboard.GetState();
 
+            switch(_currentGameState)
+            {
+                case GameState.Start:
+                    // Mostrar mensaje de inicio
+                    if (keyboardState.IsKeyDown(Keys.Enter))
+                    {
+                        _currentGameState = GameState.Playing;
+                    }
+                    break;
+                case GameState.Playing:
+                    // Actualizar la lógica del juego
+                    // Actualizar paletas
+                    if(keyboardState.IsKeyDown(Keys.P) && !_previousKeyboardState.IsKeyDown(Keys.P))
+                    {
+                        _currentGameState = GameState.Paused;
+                    }
+                    if(!_gamePaused)
+                    {
+                        _player1Paddle.Update(keyboardState, Keys.W, Keys.S);
+                        _player2Paddle.Update(keyboardState, Keys.Up, Keys.Down);
+
+                        // Actualizar pelota
+                        _ball.colideDetection(_player1Paddle, _player2Paddle);
+                        pointDetection();
+                        _ball.Update();
+
+                    }    
+
+                    break;
+                case GameState.Paused:
+                    // Mostrar mensaje de pausa
+                    if (keyboardState.IsKeyDown(Keys.P) && !_previousKeyboardState.IsKeyDown(Keys.P))
+                    {
+                        _currentGameState = GameState.Playing;
+                    }
+                    break;
+                case GameState.GameOver:
+                    // Mostrar mensaje de fin de juego
+                    if (keyboardState.IsKeyDown(Keys.Enter))
+                    {
+                        resetGame();
+                        _currentGameState = GameState.Start;
+                    }
+                    break;
+            }
+
             // Alternar el estado de pausa cuando se presiona la tecla P
             if (keyboardState.IsKeyDown(Keys.P) && !_previousKeyboardState.IsKeyDown(Keys.P))
             {
                 _gamePaused = !_gamePaused;
             }
 
-            _previousKeyboardState = keyboardState;
 
             // Si el juego está en pausa, no actualizamos la lógica del juego
             if (_gamePaused)
@@ -179,15 +261,9 @@ namespace Pong
                 return;
             }
 
-            // Actualizar paletas
-            _player1Paddle.Update(keyboardState, Keys.W, Keys.S);
-            _player2Paddle.Update(keyboardState, Keys.Up, Keys.Down);
 
-            // Actualizar pelota
-            _ball.colideDetection(_player1Paddle, _player2Paddle);
-            pointDetection();
-            _ball.Update();
 
+            _previousKeyboardState = keyboardState;
             base.Update(gameTime);
         }
 
@@ -197,13 +273,46 @@ namespace Pong
 
             _spriteBatch.Begin();
 
-            _player1Paddle.Draw(_spriteBatch);
-            _player2Paddle.Draw(_spriteBatch);
-            _ball.Draw(_spriteBatch);
+            switch (_currentGameState)
+            {
+                case GameState.Start:
+                    DrawInicioScreen();
+                    break;
+                case GameState.Playing:
+                    _player1Paddle.Draw(_spriteBatch);
+                    _player2Paddle.Draw(_spriteBatch);
+                    _ball.Draw(_spriteBatch);
+                    break;
+                case GameState.Paused:
+                    DrawPauseScreen();
+                    break;
+                case GameState.GameOver:
+                    DrawFinJuegoScreen();
+                    break;
+            }
 
             _spriteBatch.End();
 
             base.Draw(gameTime);
         }
+
+        private void DrawInicioScreen()
+        {
+            // Dibujar la pantalla de inicio
+            _spriteBatch.DrawString(Content.Load<SpriteFont>("Font"), "Presiona ENTER para comenzar", new Vector2(Width / 2 - 150, Height / 2), Color.White); //"Font" es el nombre del archivo de fuente que se encuentra en la carpeta Content, de tipo .spritefont
+        }
+
+        private void DrawPauseScreen()
+        {
+            // Dibujar la pantalla de pausa
+            _spriteBatch.DrawString(Content.Load<SpriteFont>("Font"), "Juego Pausado. Presiona P para continuar", new Vector2(Width / 2 - 150, Height / 2), Color.White);
+        }
+
+        private void DrawFinJuegoScreen()
+        {
+            // Dibujar la pantalla de fin de juego
+            _spriteBatch.DrawString(Content.Load<SpriteFont>("Font"), "Fin del juego. Presiona ENTER para reiniciar", new Vector2(Width / 2 - 150, Height / 2), Color.White);
+        }
+
     }
 }
